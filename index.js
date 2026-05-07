@@ -6,17 +6,26 @@ app.use(cors());
 app.use(express.json());
 
 let onlineCount = 0;
+const activeUsers = new Map(); // Para mejor control
 
 app.get('/online', (req, res) => {
-    res.json({ count: onlineCount });
+    res.json({ count: Math.max(1, onlineCount) });
 });
 
 app.post('/ping', (req, res) => {
-    onlineCount = Math.max(1, onlineCount + 1);
-    
+    const userId = req.ip || "unknown"; // Simple identificación
+    const now = Date.now();
+
+    activeUsers.set(userId, now);
+    onlineCount = activeUsers.size;
+
+    // Limpiar usuarios inactivos cada 25 segundos
     setTimeout(() => {
-        onlineCount = Math.max(1, onlineCount - 1);
-    }, 45000);
+        if (activeUsers.has(userId)) {
+            activeUsers.delete(userId);
+            onlineCount = activeUsers.size;
+        }
+    }, 25000);
 
     res.json({ success: true, count: onlineCount });
 });
